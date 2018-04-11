@@ -7,6 +7,7 @@ public class Constance {
     public static final String SECRET = "secret";
     public static final String GET = "GET";
     public static final String POST = "POST";
+    public static final String VERSION = "2017-03-12";
     public static final String SUCCESS = "success";
     public static final int DEFAULT_PAGE_SIZE = 50;
 }

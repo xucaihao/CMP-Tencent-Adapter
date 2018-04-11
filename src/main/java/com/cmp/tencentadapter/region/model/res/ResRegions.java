@@ -4,20 +4,20 @@ import java.util.List;
 
 public class ResRegions {
 
-    private List<RegionEntity> regions;
+    private List<RegionInfo> regions;
 
     public ResRegions() {
     }
 
-    public ResRegions(List<RegionEntity> regions) {
+    public ResRegions(List<RegionInfo> regions) {
         this.regions = regions;
     }
 
-    public List<RegionEntity> getRegions() {
+    public List<RegionInfo> getRegions() {
         return regions;
     }
 
-    public void setRegions(List<RegionEntity> regions) {
+    public void setRegions(List<RegionInfo> regions) {
         this.regions = regions;
     }
 }

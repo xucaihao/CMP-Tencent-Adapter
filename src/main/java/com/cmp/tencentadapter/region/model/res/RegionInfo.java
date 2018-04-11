@@ -2,31 +2,31 @@ package com.cmp.tencentadapter.region.model.res;
 
 public class RegionInfo {
 
-    private String region;
-    private String regionName;
-    private String regionState;
+    private String regionId;
+    private String localName;
+    private String status;
 
-    public String getRegion() {
-        return region;
+    public String getRegionId() {
+        return regionId;
     }
 
-    public void setRegion(String region) {
-        this.region = region;
+    public void setRegionId(String regionId) {
+        this.regionId = regionId;
     }
 
-    public String getRegionName() {
-        return regionName;
+    public String getLocalName() {
+        return localName;
     }
 
-    public void setRegionName(String regionName) {
-        this.regionName = regionName;
+    public void setLocalName(String localName) {
+        this.localName = localName;
     }
 
-    public String getRegionState() {
-        return regionState;
+    public String getStatus() {
+        return status;
     }
 
-    public void setRegionState(String regionState) {
-        this.regionState = regionState;
+    public void setStatus(String status) {
+        this.status = status;
     }
 }

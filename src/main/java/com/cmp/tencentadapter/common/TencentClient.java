@@ -7,8 +7,7 @@ import com.qcloud.QcloudApiModuleCenter;
 import java.util.Optional;
 import java.util.TreeMap;
 
-import static com.cmp.tencentadapter.common.Constance.ACCESS_KEY;
-import static com.cmp.tencentadapter.common.Constance.SECRET;
+import static com.cmp.tencentadapter.common.Constance.*;
 import static com.cmp.tencentadapter.common.ErrorEnum.ERR_AUTH_INFO;
 
 public class TencentClient {
@@ -51,13 +50,15 @@ public class TencentClient {
      * @param config     公共参数
      * @param base       使用接口所在的模块
      * @param actionName 接口名
+     * @param params     输入参数
      * @return 结果
      * @throws Exception Exception
      */
-    public static String call(TreeMap<String, Object> config, Base base, String actionName) throws Exception {
+    public static String call(
+            TreeMap<String, Object> config, Base base, String actionName, TreeMap<String, Object> params) throws Exception {
         // 初始化
         QcloudApiModuleCenter module = new QcloudApiModuleCenter(base, config);
-        TreeMap<String, Object> params = new TreeMap<>();
+        params.put("Version", VERSION);
         return module.call(actionName, params);
     }
 }

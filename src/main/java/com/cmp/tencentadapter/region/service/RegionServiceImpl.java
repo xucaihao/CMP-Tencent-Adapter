@@ -4,8 +4,8 @@ import com.cmp.tencentadapter.common.CloudEntity;
 import com.cmp.tencentadapter.common.JsonUtil;
 import com.cmp.tencentadapter.common.RestException;
 import com.cmp.tencentadapter.common.TencentClient;
-import com.cmp.tencentadapter.region.model.res.RegionEntity;
 import com.cmp.tencentadapter.region.model.res.RegionInfo;
+import com.cmp.tencentadapter.region.model.res.QRegion;
 import com.cmp.tencentadapter.region.model.res.ResRegions;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.qcloud.Module.Cvm;
@@ -40,14 +40,15 @@ public class RegionServiceImpl implements RegionService {
         if (TencentClient.getStatus()) {
             try {
                 TreeMap<String, Object> config = TencentClient.initConfig(cloud, GET, "ap-guangzhou");
-                String result = TencentClient.call(config, new Cvm(), "DescribeRegions");
+                TreeMap<String, Object> param = new TreeMap<>();
+                String result = TencentClient.call(config, new Cvm(), "DescribeRegions", param);
                 JSONObject jsonResult = new JSONObject(result);
                 String codeDesc = (String) jsonResult.get("codeDesc");
                 if (SUCCESS.equals(codeDesc.toLowerCase())) {
                     String regionSet = jsonResult.getJSONArray("regionSet").toString();
-                    List<RegionEntity> resRegions = Optional.ofNullable(JsonUtil.stringToGenericObject(regionSet, new TypeReference<List<RegionInfo>>() {
+                    List<RegionInfo> resRegions = Optional.ofNullable(JsonUtil.stringToGenericObject(regionSet, new TypeReference<List<QRegion>>() {
                     })).map(regions -> regions.stream().map(region -> {
-                                RegionEntity resRegion = new RegionEntity();
+                                RegionInfo resRegion = new RegionInfo();
                                 resRegion.setRegionId(region.getRegion());
                                 resRegion.setLocalName(region.getRegionName());
                                 resRegion.setStatus(region.getRegionState());
@@ -63,31 +64,31 @@ public class RegionServiceImpl implements RegionService {
                 throw (RuntimeException) e;
             }
         } else {
-            List<RegionEntity> regions = new ArrayList<>();
-            RegionEntity region0 = new RegionEntity();
+            List<RegionInfo> regions = new ArrayList<>();
+            RegionInfo region0 = new RegionInfo();
             region0.setRegionId("ap-beijing");
             region0.setLocalName("华北地区(北京)");
             region0.setStatus("AVAILABLE");
             regions.add(region0);
 
-            RegionEntity region1 = new RegionEntity();
+            RegionInfo region1 = new RegionInfo();
             region1.setRegionId("ap-guangzhou");
             region1.setLocalName("华南地区(广州)");
             region1.setStatus("AVAILABLE");
             regions.add(region1);
 
-            RegionEntity region2 = new RegionEntity();
+            RegionInfo region2 = new RegionInfo();
             region2.setRegionId("ap-guangzhou-open");
             region2.setLocalName("华南地区(广州Open)");
             region2.setStatus("AVAILABLE");
             regions.add(region2);
 
-            RegionEntity region3 = new RegionEntity();
+            RegionInfo region3 = new RegionInfo();
             region3.setRegionId("ap-hongkong");
             region3.setLocalName("东南亚地区(香港)");
             regions.add(region3);
 
-            RegionEntity region4 = new RegionEntity();
+            RegionInfo region4 = new RegionInfo();
             region4.setRegionId("ap-shanghai");
             region4.setLocalName("华东地区(上海)");
             regions.add(region4);
