@@ -1,13 +1,9 @@
 package com.cmp.tencentadapter.instance.service;
 
-import com.cmp.tencentadapter.common.CloudEntity;
-import com.cmp.tencentadapter.common.JsonUtil;
-import com.cmp.tencentadapter.common.RestException;
-import com.cmp.tencentadapter.common.TencentClient;
+import com.cmp.tencentadapter.common.*;
 import com.cmp.tencentadapter.instance.model.res.InstanceInfo;
 import com.cmp.tencentadapter.instance.model.res.QInstance;
-import com.cmp.tencentadapter.region.model.res.QRegion;
-import com.cmp.tencentadapter.region.model.res.RegionInfo;
+import com.cmp.tencentadapter.instance.model.res.ResInstances;
 import com.cmp.tencentadapter.region.model.res.ResRegions;
 import com.cmp.tencentadapter.region.service.RegionService;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -22,6 +18,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
 import static com.cmp.tencentadapter.common.Constance.GET;
 import static com.cmp.tencentadapter.common.Constance.SUCCESS;
@@ -37,17 +34,17 @@ public class InstanceServiceImpl implements InstanceService {
     private RegionService regionService;
 
     /**
-     * 查询所有地域列表
+     * 查询主机列表
      *
-     * @param cloud 云（提供ak,sk）
-     * @return 所有地域列表
+     * @param cloud 云（用户提供ak、sk）
+     * @return 主机列表
      */
     @Override
-    public ResRegions describeInstances(CloudEntity cloud) {
+    public ResInstances describeInstances(CloudEntity cloud) {
         if (TencentClient.getStatus()) {
             try {
                 ResRegions resRegions = regionService.describeRegions(cloud);
-                resRegions.getRegions().stream().map(region ->
+                List<CompletionStage<List<InstanceInfo>>> futures = resRegions.getRegions().stream().map(region ->
                         CompletableFuture.supplyAsync(() -> {
                             try {
                                 TreeMap<String, Object> config = TencentClient.initConfig(cloud, GET, region.getRegionId());
@@ -58,7 +55,7 @@ public class InstanceServiceImpl implements InstanceService {
                                 String codeDesc = (String) jsonResult.get("codeDesc");
                                 if (SUCCESS.equals(codeDesc.toLowerCase())) {
                                     String instanceSet = jsonResult.getJSONArray("InstanceSet").toString();
-                                    List<InstanceInfo> resInstances = Optional.ofNullable(JsonUtil.stringToGenericObject(instanceSet,
+                                    return Optional.ofNullable(JsonUtil.stringToGenericObject(instanceSet,
                                             new TypeReference<List<QInstance>>() {
                                             })).map(instances -> instances.stream().map(instance -> {
                                                 InstanceInfo resInstance = new InstanceInfo();
@@ -66,43 +63,24 @@ public class InstanceServiceImpl implements InstanceService {
                                                 return resInstance;
                                             }).collect(toList())
                                     ).orElseThrow(() -> new RestException("", BAD_REQUEST.value()));
-                                    return resInstances;
                                 } else {
                                     String message = (String) jsonResult.get("message");
                                     throw new RestException(message, BAD_REQUEST.value());
                                 }
                             } catch (Exception e) {
-                                logger.error("");
+                                logger.error("describeRegions in region: {}", region.getLocalName());
+                                return null;
                             }
-
                         })
                 ).collect(toList());
-                TreeMap<String, Object> config = TencentClient.initConfig(cloud, GET, "ap-guangzhou");
-                TreeMap<String, Object> param = new TreeMap<>();
-                String result = TencentClient.call(config, new Cvm(), "DescribeRegions", param);
-                JSONObject jsonResult = new JSONObject(result);
-                String codeDesc = (String) jsonResult.get("codeDesc");
-                if (SUCCESS.equals(codeDesc.toLowerCase())) {
-                    String regionSet = jsonResult.getJSONArray("regionSet").toString();
-                    List<RegionInfo> resRegions = Optional.ofNullable(JsonUtil.stringToGenericObject(regionSet, new TypeReference<List<QRegion>>() {
-                    })).map(regions -> regions.stream().map(region -> {
-                                RegionInfo resRegion = new RegionInfo();
-                                resRegion.setRegionId(region.getRegion());
-                                resRegion.setLocalName(region.getRegionName());
-                                resRegion.setStatus(region.getRegionState());
-                                return resRegion;
-                            }).collect(toList())
-                    ).orElseThrow(() -> new RestException("", BAD_REQUEST.value()));
-                    return new ResRegions(resRegions);
-                } else {
-                    String message = (String) jsonResult.get("message");
-                    throw new RestException(message, BAD_REQUEST.value());
-                }
+                List<InstanceInfo> instances = CommonUtil.aggregateList(CommonUtil.joinRes(futures));
+                return new ResInstances(instances);
             } catch (Exception e) {
                 throw (RuntimeException) e;
             }
         } else {
-
+            List<InstanceInfo> instances = TencentSimulator.getAll(InstanceInfo.class);
+            return new ResInstances(instances);
         }
     }
 }
