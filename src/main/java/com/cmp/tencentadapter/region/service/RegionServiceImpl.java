@@ -49,7 +49,9 @@ public class RegionServiceImpl implements RegionService {
                             .getString("Message");
                     throw new RestException(message, BAD_REQUEST.value());
                 } else {
-                    String regionSet = jsonResult.getJSONObject("Response").getJSONArray("RegionSet").toString();
+                    String regionSet = jsonResult.getJSONObject("Response")
+                            .getJSONArray("RegionSet")
+                            .toString();
                     List<RegionInfo> resRegions = Optional.ofNullable(JsonUtil.stringToGenericObject(regionSet, new TypeReference<List<QRegion>>() {
                     })).map(regions -> regions.stream().map(region -> {
                                 RegionInfo resRegion = new RegionInfo();

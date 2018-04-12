@@ -2,6 +2,7 @@ package com.cmp.tencentadapter.instance.service;
 
 import com.cmp.tencentadapter.common.*;
 import com.cmp.tencentadapter.instance.model.res.InstanceInfo;
+import com.cmp.tencentadapter.instance.model.res.QDiskBean;
 import com.cmp.tencentadapter.instance.model.res.QInstance;
 import com.cmp.tencentadapter.instance.model.res.ResInstances;
 import com.cmp.tencentadapter.region.model.res.ResRegions;
@@ -14,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.TreeMap;
@@ -32,6 +34,28 @@ public class InstanceServiceImpl implements InstanceService {
     @Autowired
     private RegionService regionService;
 
+    private InstanceInfo convertInstance(QInstance instance, String status) {
+        InstanceInfo resInstance = new InstanceInfo();
+        resInstance.setInstanceId(instance.getInstanceId());
+        resInstance.setInstanceName(instance.getInstanceName());
+        resInstance.setStatus(status);
+        resInstance.setZoneId(instance.getPlacement().getZone());
+        resInstance.setCreatedTime(instance.getCreatedTime());
+        resInstance.setExpiredTime(instance.getExpiredTime());
+        resInstance.setInstanceType(instance.getInstanceType());
+        resInstance.setOsName(instance.getOsName());
+        resInstance.setImageId(instance.getImageId());
+        resInstance.setMemory(instance.getMemory() * 1024);
+        resInstance.setCpu(instance.getCpu());
+        resInstance.setInternetChargeType(instance.getInstanceChargeType());
+        resInstance.setInternetChargeType(instance.getInstanceChargeType());
+        resInstance.setPublicIpAddresses(instance.getPublicIpAddresses());
+        resInstance.setInnerIpAddress(instance.getPrivateIpAddresses());
+        resInstance.setSecurityGroupIds(instance.getSecurityGroupIds());
+        return resInstance;
+    }
+
+
     /**
      * 查询主机列表
      *
@@ -46,7 +70,7 @@ public class InstanceServiceImpl implements InstanceService {
                 List<CompletionStage<List<InstanceInfo>>> futures = resRegions.getRegions().stream().map(region ->
                         CompletableFuture.supplyAsync(() -> {
                             try {
-                                TreeMap<String, Object> config = TencentClient.initConfig(cloud, GET, "cd");
+                                TreeMap<String, Object> config = TencentClient.initConfig(cloud, GET, region.getRegionId());
                                 TreeMap<String, Object> param = new TreeMap<>();
                                 param.put("Limit", 50);
                                 String result = TencentClient.call(config, new Cvm(), "DescribeInstances", param);
@@ -57,18 +81,21 @@ public class InstanceServiceImpl implements InstanceService {
                                             .getString("Message");
                                     throw new RestException(message, BAD_REQUEST.value());
                                 } else {
-                                    String instanceSet = jsonResult.getJSONObject("Response").getJSONArray("InstanceSet").toString();
+                                    String instanceSet = jsonResult.getJSONObject("Response")
+                                            .getJSONArray("InstanceSet")
+                                            .toString();
                                     return Optional.ofNullable(JsonUtil.stringToGenericObject(instanceSet,
                                             new TypeReference<List<QInstance>>() {
                                             })).map(instances -> instances.stream().map(instance -> {
-                                                InstanceInfo resInstance = new InstanceInfo();
-
-                                                return resInstance;
+                                                //查询主机运行状态
+                                                String instanceId = instance.getInstanceId();
+                                                String status = describeInstancesStatus(cloud, region.getRegionId(), instanceId);
+                                                return convertInstance(instance, status);
                                             }).collect(toList())
                                     ).orElseThrow(() -> new RestException("", BAD_REQUEST.value()));
                                 }
                             } catch (Exception e) {
-                                logger.error("describeRegions in region: {}", region.getLocalName());
+                                logger.error("describeRegions in region: {} occurred error: {}", region.getLocalName(), e.getMessage());
                                 return null;
                             }
                         })
@@ -83,4 +110,34 @@ public class InstanceServiceImpl implements InstanceService {
             return new ResInstances(instances);
         }
     }
+
+    private String describeInstancesStatus(CloudEntity cloud, String regionId, String instanceId) {
+        try {
+            try {
+                TreeMap<String, Object> config = TencentClient.initConfig(cloud, GET, regionId);
+                TreeMap<String, Object> param = new TreeMap<>();
+                List<String> instanceIds = new ArrayList<>();
+                instanceIds.add("InstanceIds.0=" + instanceId);
+                param.put("InstanceIds", instanceIds);
+                String result = TencentClient.call(config, new Cvm(), "DescribeInstancesStatus", param);
+                JSONObject jsonResult = new JSONObject(result);
+                if (jsonResult.getJSONObject("Response").has("Error")) {
+                    String message = jsonResult.getJSONObject("Response")
+                            .getJSONObject("Error")
+                            .getString("Message");
+                    throw new RestException(message, BAD_REQUEST.value());
+                } else {
+                    return jsonResult.getJSONObject("Response")
+                            .getJSONObject("InstanceStatusSet")
+                            .getString("InstanceState");
+                }
+            } catch (Exception e) {
+                logger.error("describeInstancesStatus error: {}, instanceId: {}", e.getMessage(), instanceId);
+                return null;
+            }
+        } catch (Exception e) {
+            throw (RuntimeException) e;
+        }
+    }
+
 }
