@@ -43,16 +43,4 @@ public class InstanceController extends BaseController {
                 .thenApply(x -> okFormat(OK.value(), x, response))
                 .exceptionally(e -> badFormat(e, response));
     }
-
-    @RequestMapping("/instance")
-    @ResponseBody
-    public JsonNode describeInstance(
-            final HttpServletRequest request,
-            final HttpServletResponse response) {
-        CloudEntity cloud = new CloudEntity();
-        String authInfo = "{\n\"accessKey\" : \"AKIDXu3yf8wL5bsuhGMfV5RYQ4TeaGhtsY1F\",\n\"secret\" : \"5wYv3xc2D9qIVTChwwjHaeT3PWP3Scki\"\n}";
-        cloud.setAuthInfo(authInfo);
-        instanceService.describeInstances(cloud);
-        return null;
-    }
 }
