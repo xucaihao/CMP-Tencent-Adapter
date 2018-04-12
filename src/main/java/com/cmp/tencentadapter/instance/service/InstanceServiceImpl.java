@@ -21,7 +21,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import static com.cmp.tencentadapter.common.Constance.GET;
-import static com.cmp.tencentadapter.common.Constance.SUCCESS;
 import static java.util.stream.Collectors.toList;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 
@@ -47,14 +46,18 @@ public class InstanceServiceImpl implements InstanceService {
                 List<CompletionStage<List<InstanceInfo>>> futures = resRegions.getRegions().stream().map(region ->
                         CompletableFuture.supplyAsync(() -> {
                             try {
-                                TreeMap<String, Object> config = TencentClient.initConfig(cloud, GET, region.getRegionId());
+                                TreeMap<String, Object> config = TencentClient.initConfig(cloud, GET, "cd");
                                 TreeMap<String, Object> param = new TreeMap<>();
                                 param.put("Limit", 50);
                                 String result = TencentClient.call(config, new Cvm(), "DescribeInstances", param);
                                 JSONObject jsonResult = new JSONObject(result);
-                                String codeDesc = (String) jsonResult.get("codeDesc");
-                                if (SUCCESS.equals(codeDesc.toLowerCase())) {
-                                    String instanceSet = jsonResult.getJSONArray("InstanceSet").toString();
+                                if (jsonResult.getJSONObject("Response").has("Error")) {
+                                    String message = jsonResult.getJSONObject("Response")
+                                            .getJSONObject("Error")
+                                            .getString("Message");
+                                    throw new RestException(message, BAD_REQUEST.value());
+                                } else {
+                                    String instanceSet = jsonResult.getJSONObject("Response").getJSONArray("InstanceSet").toString();
                                     return Optional.ofNullable(JsonUtil.stringToGenericObject(instanceSet,
                                             new TypeReference<List<QInstance>>() {
                                             })).map(instances -> instances.stream().map(instance -> {
@@ -63,9 +66,6 @@ public class InstanceServiceImpl implements InstanceService {
                                                 return resInstance;
                                             }).collect(toList())
                                     ).orElseThrow(() -> new RestException("", BAD_REQUEST.value()));
-                                } else {
-                                    String message = (String) jsonResult.get("message");
-                                    throw new RestException(message, BAD_REQUEST.value());
                                 }
                             } catch (Exception e) {
                                 logger.error("describeRegions in region: {}", region.getLocalName());

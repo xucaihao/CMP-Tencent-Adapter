@@ -4,8 +4,8 @@ import com.cmp.tencentadapter.common.CloudEntity;
 import com.cmp.tencentadapter.common.JsonUtil;
 import com.cmp.tencentadapter.common.RestException;
 import com.cmp.tencentadapter.common.TencentClient;
-import com.cmp.tencentadapter.region.model.res.RegionInfo;
 import com.cmp.tencentadapter.region.model.res.QRegion;
+import com.cmp.tencentadapter.region.model.res.RegionInfo;
 import com.cmp.tencentadapter.region.model.res.ResRegions;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.qcloud.Module.Cvm;
@@ -20,7 +20,6 @@ import java.util.Optional;
 import java.util.TreeMap;
 
 import static com.cmp.tencentadapter.common.Constance.GET;
-import static com.cmp.tencentadapter.common.Constance.SUCCESS;
 import static java.util.stream.Collectors.toList;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 
@@ -39,13 +38,18 @@ public class RegionServiceImpl implements RegionService {
     public ResRegions describeRegions(CloudEntity cloud) {
         if (TencentClient.getStatus()) {
             try {
-                TreeMap<String, Object> config = TencentClient.initConfig(cloud, GET, "ap-guangzhou");
+                String defaultRegion = "ap-guangzhou";
+                TreeMap<String, Object> config = TencentClient.initConfig(cloud, GET, defaultRegion);
                 TreeMap<String, Object> param = new TreeMap<>();
                 String result = TencentClient.call(config, new Cvm(), "DescribeRegions", param);
                 JSONObject jsonResult = new JSONObject(result);
-                String codeDesc = (String) jsonResult.get("codeDesc");
-                if (SUCCESS.equals(codeDesc.toLowerCase())) {
-                    String regionSet = jsonResult.getJSONArray("regionSet").toString();
+                if (jsonResult.getJSONObject("Response").has("Error")) {
+                    String message = jsonResult.getJSONObject("Response")
+                            .getJSONObject("Error")
+                            .getString("Message");
+                    throw new RestException(message, BAD_REQUEST.value());
+                } else {
+                    String regionSet = jsonResult.getJSONObject("Response").getJSONArray("RegionSet").toString();
                     List<RegionInfo> resRegions = Optional.ofNullable(JsonUtil.stringToGenericObject(regionSet, new TypeReference<List<QRegion>>() {
                     })).map(regions -> regions.stream().map(region -> {
                                 RegionInfo resRegion = new RegionInfo();
@@ -56,9 +60,6 @@ public class RegionServiceImpl implements RegionService {
                             }).collect(toList())
                     ).orElseThrow(() -> new RestException("", BAD_REQUEST.value()));
                     return new ResRegions(resRegions);
-                } else {
-                    String message = (String) jsonResult.get("message");
-                    throw new RestException(message, BAD_REQUEST.value());
                 }
             } catch (Exception e) {
                 throw (RuntimeException) e;

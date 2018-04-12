@@ -1,9 +1,14 @@
 package com.cmp.tencentadapter.region.model.res;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public class QRegion {
 
+    @JsonProperty("Region")
     private String region;
+    @JsonProperty("RegionName")
     private String regionName;
+    @JsonProperty("RegionState")
     private String regionState;
 
     public String getRegion() {
