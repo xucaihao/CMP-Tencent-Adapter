@@ -2,9 +2,9 @@ package com.cmp.tencentadapter.instance.service;
 
 import com.cmp.tencentadapter.common.*;
 import com.cmp.tencentadapter.instance.model.res.InstanceInfo;
-import com.cmp.tencentadapter.instance.model.res.QDiskBean;
 import com.cmp.tencentadapter.instance.model.res.QInstance;
 import com.cmp.tencentadapter.instance.model.res.ResInstances;
+import com.cmp.tencentadapter.region.model.res.RegionInfo;
 import com.cmp.tencentadapter.region.model.res.ResRegions;
 import com.cmp.tencentadapter.region.service.RegionService;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -34,11 +34,12 @@ public class InstanceServiceImpl implements InstanceService {
     @Autowired
     private RegionService regionService;
 
-    private InstanceInfo convertInstance(QInstance instance, String status) {
+    private InstanceInfo convertInstance(QInstance instance, String status, String regionId) {
         InstanceInfo resInstance = new InstanceInfo();
         resInstance.setInstanceId(instance.getInstanceId());
         resInstance.setInstanceName(instance.getInstanceName());
         resInstance.setStatus(status);
+        resInstance.setRegionId(regionId);
         resInstance.setZoneId(instance.getPlacement().getZone());
         resInstance.setCreatedTime(instance.getCreatedTime());
         resInstance.setExpiredTime(instance.getExpiredTime());
@@ -66,43 +67,47 @@ public class InstanceServiceImpl implements InstanceService {
     public ResInstances describeInstances(CloudEntity cloud) {
         if (TencentClient.getStatus()) {
             try {
-                List<InstanceInfo> instanceInfos;
-//                ResRegions resRegions = regionService.describeRegions(cloud);
-//                List<CompletionStage<List<InstanceInfo>>> futures = resRegions.getRegions().stream().map(region ->
-//                        CompletableFuture.supplyAsync(() -> {
-                try {
-                    TreeMap<String, Object> config = TencentClient.initConfig(cloud, GET, "cd");
-                    TreeMap<String, Object> param = new TreeMap<>();
-                    param.put("Limit", 50);
-                    String result = TencentClient.call(config, new Cvm(), "DescribeInstances", param);
-                    JSONObject jsonResult = new JSONObject(result);
-                    if (jsonResult.getJSONObject("Response").has("Error")) {
-                        String message = jsonResult.getJSONObject("Response")
-                                .getJSONObject("Error")
-                                .getString("Message");
-                        throw new RestException(message, BAD_REQUEST.value());
-                    } else {
-                        String instanceSet = jsonResult.getJSONObject("Response")
-                                .getJSONArray("InstanceSet")
-                                .toString();
-                        instanceInfos = Optional.ofNullable(JsonUtil.stringToGenericObject(instanceSet,
-                                new TypeReference<List<QInstance>>() {
-                                })).map(instances -> instances.stream().map(instance -> {
-                                    //查询主机运行状态
-                                    String instanceId = instance.getInstanceId();
-                                    String status = describeInstancesStatus(cloud, "cd", instanceId);
-                                    return convertInstance(instance, status);
-                                }).collect(toList())
-                        ).orElseThrow(() -> new RestException("", BAD_REQUEST.value()));
-                    }
-                } catch (Exception e) {
-//                    logger.error("describeRegions in region: {} occurred error: {}", region.getLocalName(), e.getMessage());
-                    return null;
-                }
-//                        })
-//                ).collect(toList());
-//                List<InstanceInfo> instances = CommonUtil.aggregateList(CommonUtil.joinRes(futures));
-                return new ResInstances(instanceInfos);
+                List<RegionInfo> regions = new ArrayList<>();
+                RegionInfo regionInfo = new RegionInfo();
+                regionInfo.setRegionId("cd");
+                regions.add(regionInfo);
+                ResRegions resRegions = new ResRegions(regions);
+                //                ResRegions resRegions = regionService.describeRegions(cloud);
+                List<CompletionStage<List<InstanceInfo>>> futures = resRegions.getRegions().stream().map(region ->
+                        CompletableFuture.supplyAsync(() -> {
+                            try {
+                                TreeMap<String, Object> config = TencentClient.initConfig(cloud, GET, region.getRegionId());
+                                TreeMap<String, Object> param = new TreeMap<>();
+                                param.put("Limit", 50);
+                                String result = TencentClient.call(config, new Cvm(), "DescribeInstances", param);
+                                JSONObject jsonResult = new JSONObject(result);
+                                if (jsonResult.getJSONObject("Response").has("Error")) {
+                                    String message = jsonResult.getJSONObject("Response")
+                                            .getJSONObject("Error")
+                                            .getString("Message");
+                                    throw new RestException(message, BAD_REQUEST.value());
+                                } else {
+                                    String instanceSet = jsonResult.getJSONObject("Response")
+                                            .getJSONArray("InstanceSet")
+                                            .toString();
+                                    return Optional.ofNullable(JsonUtil.stringToGenericObject(instanceSet,
+                                            new TypeReference<List<QInstance>>() {
+                                            })).map(instances -> instances.stream().map(instance -> {
+                                                //查询主机运行状态
+                                                String instanceId = instance.getInstanceId();
+                                                String status = describeInstancesStatus(cloud, "cd", instanceId);
+                                                return convertInstance(instance, status, region.getRegionId());
+                                            }).collect(toList())
+                                    ).orElseThrow(() -> new RestException("", BAD_REQUEST.value()));
+                                }
+                            } catch (Exception e) {
+                                logger.error("describeRegions in region: {} occurred error: {}", region.getLocalName(), e.getMessage());
+                                return null;
+                            }
+                        })
+                ).collect(toList());
+                List<InstanceInfo> instances = CommonUtil.aggregateList(CommonUtil.joinRes(futures));
+                return new ResInstances(instances);
             } catch (Exception e) {
                 throw (RuntimeException) e;
             }
