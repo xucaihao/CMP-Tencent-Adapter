@@ -31,7 +31,7 @@ public class InstanceInfo {
     /**
      * 创建时间
      */
-    private String createdTime;
+    private String creationTime;
 
     /**
      * 到期时间
@@ -94,7 +94,7 @@ public class InstanceInfo {
     /**
      * 公网ip列表
      */
-    private List<String> publicIpAddresses;
+    private List<String> publicIpAddress;
 
     /**
      * 安全组id列表
@@ -141,12 +141,12 @@ public class InstanceInfo {
         this.zoneId = zoneId;
     }
 
-    public String getCreatedTime() {
-        return createdTime;
+    public String getCreationTime() {
+        return creationTime;
     }
 
-    public void setCreatedTime(String createdTime) {
-        this.createdTime = createdTime;
+    public void setCreationTime(String creationTime) {
+        this.creationTime = creationTime;
     }
 
     public String getExpiredTime() {
@@ -237,12 +237,12 @@ public class InstanceInfo {
         this.innerIpAddress = innerIpAddress;
     }
 
-    public List<String> getPublicIpAddresses() {
-        return publicIpAddresses;
+    public List<String> getPublicIpAddress() {
+        return publicIpAddress;
     }
 
-    public void setPublicIpAddresses(List<String> publicIpAddresses) {
-        this.publicIpAddresses = publicIpAddresses;
+    public void setPublicIpAddress(List<String> publicIpAddress) {
+        this.publicIpAddress = publicIpAddress;
     }
 
     public List<String> getSecurityGroupIds() {

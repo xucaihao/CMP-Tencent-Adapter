@@ -41,16 +41,22 @@ public class InstanceServiceImpl implements InstanceService {
         resInstance.setStatus(status);
         resInstance.setRegionId(regionId);
         resInstance.setZoneId(instance.getPlacement().getZone());
-        resInstance.setCreatedTime(instance.getCreatedTime());
-        resInstance.setExpiredTime(instance.getExpiredTime());
+        String createdTime = instance.getCreatedTime()
+                .replace("T", " ")
+                .replace("Z", " ");
+        resInstance.setCreationTime(createdTime);
+        String expiredTime = instance.getExpiredTime()
+                .replace("T", " ")
+                .replace("Z", " ");
+        resInstance.setExpiredTime(expiredTime);
         resInstance.setInstanceType(instance.getInstanceType());
         resInstance.setOsName(instance.getOsName());
         resInstance.setImageId(instance.getImageId());
         resInstance.setMemory(instance.getMemory() * 1024);
         resInstance.setCpu(instance.getCpu());
-        resInstance.setInternetChargeType(instance.getInstanceChargeType());
-        resInstance.setInternetChargeType(instance.getInstanceChargeType());
-        resInstance.setPublicIpAddresses(instance.getPublicIpAddresses());
+        resInstance.setInternetChargeType(instance.getInternetAccessible().getInternetChargeType());
+        resInstance.setInstanceChargeType(instance.getInstanceChargeType());
+        resInstance.setPublicIpAddress(instance.getPublicIpAddresses());
         resInstance.setInnerIpAddress(instance.getPrivateIpAddresses());
         resInstance.setSecurityGroupIds(instance.getSecurityGroupIds());
         return resInstance;
