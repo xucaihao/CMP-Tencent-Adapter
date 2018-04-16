@@ -29,18 +29,19 @@ public class TencentClient {
      */
     public static TreeMap<String, Object> initConfig(CloudEntity cloud, String requestMethod, String regionId) {
         // 初始化
+
+//        String accessKey = "AKIDXu3yf8wL5bsuhGMfV5RYQ4TeaGhtsY1F";
+//        String secret = "5wYv3xc2D9qIVTChwwjHaeT3PWP3Scki";
+
         JsonNode authInfo = Optional.ofNullable(
                 JsonUtil.stringToObject(cloud.getAuthInfo(), JsonNode.class))
                 .orElseThrow(() -> new TencentException(ERR_AUTH_INFO));
-//        String accessKey = "AKIDXu3yf8wL5bsuhGMfV5RYQ4TeaGhtsY1F";
         String accessKey = authInfo.path(ACCESS_KEY).asText();
-//        String secret = "5wYv3xc2D9qIVTChwwjHaeT3PWP3Scki";
         String secret = authInfo.path(SECRET).asText();
         TreeMap<String, Object> config = new TreeMap<>();
         config.put("SecretId", accessKey);
         config.put("SecretKey", secret);
         config.put("RequestMethod", requestMethod);
-//        config.put("DefaultRegion", "cd");
         config.put("DefaultRegion", regionId);
         return config;
     }

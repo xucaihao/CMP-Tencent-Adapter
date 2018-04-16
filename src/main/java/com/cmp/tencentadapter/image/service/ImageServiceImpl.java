@@ -42,6 +42,7 @@ public class ImageServiceImpl implements ImageService {
         resImage.setImageId(image.getImageId());
         resImage.setImageName(image.getImageName());
         resImage.setRegionId(regionId);
+        resImage.setCreationTime("---");
         if (!StringUtils.isEmpty(image.getCreatedTime())) {
             String createdTime = image.getCreatedTime()
                     .replace("T", " ")
