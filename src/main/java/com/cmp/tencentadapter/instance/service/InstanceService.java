@@ -12,4 +12,14 @@ public interface InstanceService {
      * @return 主机列表
      */
     ResInstances describeInstances(CloudEntity cloud);
+
+//    /**
+//     * 查询指定主机
+//     * @param cloud
+//     * @param regionId
+//     * @param instanceId
+//     * @return
+//     */
+//    ResInstance describeInstanceAttribute(
+//            CloudEntity cloud, String regionId, String instanceId);
 }
