@@ -1,6 +1,8 @@
 package com.cmp.tencentadapter.instance.service;
 
 import com.cmp.tencentadapter.common.CloudEntity;
+import com.cmp.tencentadapter.instance.model.req.ReqCloseInstance;
+import com.cmp.tencentadapter.instance.model.req.ReqStartInstance;
 import com.cmp.tencentadapter.instance.model.res.ResInstances;
 
 public interface InstanceService {
@@ -22,4 +24,21 @@ public interface InstanceService {
 //     */
 //    ResInstance describeInstanceAttribute(
 //            CloudEntity cloud, String regionId, String instanceId);
+
+    /**
+     * 关闭实例
+     *
+     * @param cloud            云（用户提供ak、sk）
+     * @param reqCloseInstance 请求体
+     */
+    void closeInstance(CloudEntity cloud, ReqCloseInstance reqCloseInstance);
+
+    /**
+     * 启动实例
+     *
+     * @param cloud            云（用户提供ak、sk）
+     * @param reqStartInstance 请求体
+     */
+    void startInstance(CloudEntity cloud, ReqStartInstance reqStartInstance);
+
 }

@@ -1,6 +1,8 @@
 package com.cmp.tencentadapter.instance.service;
 
 import com.cmp.tencentadapter.common.*;
+import com.cmp.tencentadapter.instance.model.req.ReqCloseInstance;
+import com.cmp.tencentadapter.instance.model.req.ReqStartInstance;
 import com.cmp.tencentadapter.instance.model.res.InstanceInfo;
 import com.cmp.tencentadapter.instance.model.res.QInstance;
 import com.cmp.tencentadapter.instance.model.res.ResInstances;
@@ -15,10 +17,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
@@ -62,6 +61,29 @@ public class InstanceServiceImpl implements InstanceService {
         return resInstance;
     }
 
+    private String describeInstancesStatus(CloudEntity cloud, String regionId, String instanceId) {
+        try {
+            TreeMap<String, Object> config = TencentClient.initConfig(cloud, GET, regionId);
+            TreeMap<String, Object> param = new TreeMap<>();
+            param.put("InstanceIds.0", instanceId);
+            String result = TencentClient.call(config, new Cvm(), "DescribeInstancesStatus", param);
+            JSONObject jsonResult = new JSONObject(result);
+            if (jsonResult.getJSONObject("Response").has("Error")) {
+                String message = jsonResult.getJSONObject("Response")
+                        .getJSONObject("Error")
+                        .getString("Message");
+                throw new RestException(message, BAD_REQUEST.value());
+            } else {
+                return jsonResult.getJSONObject("Response")
+                        .getJSONArray("InstanceStatusSet")
+                        .getJSONObject(0)
+                        .getString("InstanceState");
+            }
+        } catch (Exception e) {
+            logger.error("describeInstancesStatus error: {}, instanceId: {}", e.getMessage(), instanceId);
+            return null;
+        }
+    }
 
     /**
      * 查询主机列表
@@ -123,28 +145,68 @@ public class InstanceServiceImpl implements InstanceService {
         }
     }
 
-    private String describeInstancesStatus(CloudEntity cloud, String regionId, String instanceId) {
-        try {
-            TreeMap<String, Object> config = TencentClient.initConfig(cloud, GET, regionId);
-            TreeMap<String, Object> param = new TreeMap<>();
-            param.put("InstanceIds.0", instanceId);
-            String result = TencentClient.call(config, new Cvm(), "DescribeInstancesStatus", param);
-            JSONObject jsonResult = new JSONObject(result);
-            if (jsonResult.getJSONObject("Response").has("Error")) {
-                String message = jsonResult.getJSONObject("Response")
-                        .getJSONObject("Error")
-                        .getString("Message");
-                throw new RestException(message, BAD_REQUEST.value());
-            } else {
-                return jsonResult.getJSONObject("Response")
-                        .getJSONArray("InstanceStatusSet")
-                        .getJSONObject(0)
-                        .getString("InstanceState");
+    /**
+     * 关闭实例
+     *
+     * @param cloud            云（用户提供ak、sk）
+     * @param reqCloseInstance 请求体
+     */
+    @Override
+    public void closeInstance(CloudEntity cloud, ReqCloseInstance reqCloseInstance) {
+        if (TencentClient.getStatus()) {
+            try {
+                TreeMap<String, Object> config = TencentClient.initConfig(cloud, GET, reqCloseInstance.getRegionId());
+                TreeMap<String, Object> param = new TreeMap<>();
+                param.put("InstanceIds.0", reqCloseInstance.getInstanceId());
+                param.put("ForceStop", reqCloseInstance.isForceStop());
+                String result = TencentClient.call(config, new Cvm(), "StopInstances", param);
+                JSONObject jsonResult = new JSONObject(result);
+                if (jsonResult.getJSONObject("Response").has("Error")) {
+                    String message = jsonResult.getJSONObject("Response")
+                            .getJSONObject("Error")
+                            .getString("Message");
+                    throw new RestException(message, BAD_REQUEST.value());
+                }
+            } catch (Exception e) {
+                logger.error("closeInstance in region: {} occurred error: {}", reqCloseInstance.getRegionId(), e.getMessage());
+                throw (RuntimeException) e;
             }
-        } catch (Exception e) {
-            logger.error("describeInstancesStatus error: {}, instanceId: {}", e.getMessage(), instanceId);
-            return null;
+        } else {
+            Map<String, Object> values = new HashMap<>(16);
+            values.put("status", "stopped");
+            TencentSimulator.modify(InstanceInfo.class, reqCloseInstance.getInstanceId(), values);
         }
     }
 
+    /**
+     * 启动实例
+     *
+     * @param cloud            云（用户提供ak、sk）
+     * @param reqStartInstance 请求体
+     */
+    @Override
+    public void startInstance(CloudEntity cloud, ReqStartInstance reqStartInstance) {
+        if (TencentClient.getStatus()) {
+            try {
+                TreeMap<String, Object> config = TencentClient.initConfig(cloud, GET, reqStartInstance.getRegionId());
+                TreeMap<String, Object> param = new TreeMap<>();
+                param.put("InstanceIds.0", reqStartInstance.getInstanceId());
+                String result = TencentClient.call(config, new Cvm(), "StartInstances", param);
+                JSONObject jsonResult = new JSONObject(result);
+                if (jsonResult.getJSONObject("Response").has("Error")) {
+                    String message = jsonResult.getJSONObject("Response")
+                            .getJSONObject("Error")
+                            .getString("Message");
+                    throw new RestException(message, BAD_REQUEST.value());
+                }
+            } catch (Exception e) {
+                logger.error("startInstance in region: {} occurred error: {}", reqStartInstance.getRegionId(), e.getMessage());
+                throw (RuntimeException) e;
+            }
+        } else {
+            Map<String, Object> values = new HashMap<>(16);
+            values.put("status", "running");
+            TencentSimulator.modify(InstanceInfo.class, reqStartInstance.getInstanceId(), values);
+        }
+    }
 }
