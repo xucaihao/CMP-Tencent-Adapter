@@ -5,6 +5,7 @@ import com.cmp.tencentadapter.instance.model.req.ReqCloseInstance;
 import com.cmp.tencentadapter.instance.model.req.ReqStartInstance;
 import com.cmp.tencentadapter.instance.model.res.InstanceInfo;
 import com.cmp.tencentadapter.instance.model.res.QInstance;
+import com.cmp.tencentadapter.instance.model.res.ResInstance;
 import com.cmp.tencentadapter.instance.model.res.ResInstances;
 import com.cmp.tencentadapter.region.model.res.RegionInfo;
 import com.cmp.tencentadapter.region.model.res.ResRegions;
@@ -129,7 +130,7 @@ public class InstanceServiceImpl implements InstanceService {
                                     ).orElseThrow(() -> new RestException("", BAD_REQUEST.value()));
                                 }
                             } catch (Exception e) {
-                                logger.error("describeRegions in region: {} occurred error: {}", region.getLocalName(), e.getMessage());
+                                logger.error("describeRegions in region: {} occurred error: {}", region.getRegionId(), e.getMessage());
                                 return null;
                             }
                         })
@@ -142,6 +143,52 @@ public class InstanceServiceImpl implements InstanceService {
         } else {
             List<InstanceInfo> instances = TencentSimulator.getAll(InstanceInfo.class);
             return new ResInstances(instances);
+        }
+    }
+
+    /**
+     * 查询指定主机
+     *
+     * @param cloud      云
+     * @param regionId   区域id
+     * @param instanceId 实例id
+     * @return 指定主机
+     */
+    @Override
+    public ResInstance describeInstanceAttribute(CloudEntity cloud, String regionId, String instanceId) {
+        if (TencentClient.getStatus()) {
+            try {
+                TreeMap<String, Object> config = TencentClient.initConfig(cloud, GET, regionId);
+                TreeMap<String, Object> param = new TreeMap<>();
+                param.put("InstanceIds.0", instanceId);
+                String result = TencentClient.call(config, new Cvm(), "DescribeInstances", param);
+                JSONObject jsonResult = new JSONObject(result);
+                if (jsonResult.getJSONObject("Response").has("Error")) {
+                    String message = jsonResult.getJSONObject("Response")
+                            .getJSONObject("Error")
+                            .getString("Message");
+                    throw new RestException(message, BAD_REQUEST.value());
+                } else {
+                    String instanceSet = jsonResult.getJSONObject("Response")
+                            .getJSONArray("InstanceSet")
+                            .get(0)
+                            .toString();
+                    InstanceInfo instanceInfo = Optional.ofNullable(JsonUtil.stringToObject(instanceSet, QInstance.class))
+                            .map(instance -> {
+                                //查询主机运行状态
+                                String status = describeInstancesStatus(cloud, regionId, instanceId);
+                                return convertInstance(instance, status, regionId);
+                            }).orElseThrow(() -> new RestException("", BAD_REQUEST.value()));
+                    return new ResInstance(instanceInfo);
+                }
+            } catch (Exception e) {
+                logger.error("describeInstanceAttribute {} in region: {} occurred error: {}", instanceId, regionId, e.getMessage());
+                throw (RuntimeException) e;
+            }
+
+        } else {
+            InstanceInfo instance = TencentSimulator.get(InstanceInfo.class, instanceId);
+            return new ResInstance(instance);
         }
     }
 

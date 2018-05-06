@@ -4,8 +4,6 @@ import com.cmp.tencentadapter.common.*;
 import com.cmp.tencentadapter.image.model.ImageInfo;
 import com.cmp.tencentadapter.image.model.QImage;
 import com.cmp.tencentadapter.image.model.ResImages;
-import com.cmp.tencentadapter.instance.model.res.InstanceInfo;
-import com.cmp.tencentadapter.instance.model.res.QInstance;
 import com.cmp.tencentadapter.region.model.res.RegionInfo;
 import com.cmp.tencentadapter.region.model.res.ResRegions;
 import com.cmp.tencentadapter.region.service.RegionService;
@@ -101,7 +99,7 @@ public class ImageServiceImpl implements ImageService {
                                     ).orElseThrow(() -> new RestException("", BAD_REQUEST.value()));
                                 }
                             } catch (Exception e) {
-                                logger.error("describeImages in region: {} occurred error: {}", region.getLocalName(), e.getMessage());
+                                logger.error("describeImages in region: {} occurred error: {}", region.getRegionId(), e.getMessage());
                                 return null;
                             }
                         })

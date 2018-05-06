@@ -1,2 +1,2 @@
-Server:
-  Port: 13120
+server:
+  port: 13120

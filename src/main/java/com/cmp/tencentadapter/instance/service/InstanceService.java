@@ -3,6 +3,7 @@ package com.cmp.tencentadapter.instance.service;
 import com.cmp.tencentadapter.common.CloudEntity;
 import com.cmp.tencentadapter.instance.model.req.ReqCloseInstance;
 import com.cmp.tencentadapter.instance.model.req.ReqStartInstance;
+import com.cmp.tencentadapter.instance.model.res.ResInstance;
 import com.cmp.tencentadapter.instance.model.res.ResInstances;
 
 public interface InstanceService {
@@ -15,15 +16,15 @@ public interface InstanceService {
      */
     ResInstances describeInstances(CloudEntity cloud);
 
-//    /**
-//     * 查询指定主机
-//     * @param cloud
-//     * @param regionId
-//     * @param instanceId
-//     * @return
-//     */
-//    ResInstance describeInstanceAttribute(
-//            CloudEntity cloud, String regionId, String instanceId);
+    /**
+     * 查询指定主机
+     *
+     * @param cloud      云
+     * @param regionId   区域id
+     * @param instanceId 实例id
+     * @return 指定主机
+     */
+    ResInstance describeInstanceAttribute(CloudEntity cloud, String regionId, String instanceId);
 
     /**
      * 关闭实例
