@@ -5,6 +5,7 @@ import com.cmp.tencentadapter.common.BaseController;
 import com.cmp.tencentadapter.common.JsonUtil;
 import com.cmp.tencentadapter.instance.model.req.ReqCloseInstance;
 import com.cmp.tencentadapter.instance.model.req.ReqModifyInstance;
+import com.cmp.tencentadapter.instance.model.req.ReqRebootInstance;
 import com.cmp.tencentadapter.instance.model.req.ReqStartInstance;
 import com.cmp.tencentadapter.instance.service.InstanceService;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -115,6 +116,28 @@ public class InstanceController extends BaseController {
     }
 
     /**
+     * 重启实例
+     *
+     * @param request  http请求
+     * @param response http响应
+     * @return 操作结果
+     * @throws IOException 异常
+     */
+    @RequestMapping("/instances/reboot")
+    @ResponseBody
+    public CompletionStage<JsonNode> rebootInstance(
+            final HttpServletRequest request,
+            final HttpServletResponse response) throws IOException {
+        BufferedReader reader = new BufferedReader(new InputStreamReader(request.getInputStream()));
+        String body = IOUtils.read(reader);
+        ReqRebootInstance reqRebootInstance = JsonUtil.stringToObject(body, ReqRebootInstance.class);
+        return getCloudEntity(request)
+                .thenAccept(cloud -> instanceService.rebootInstance(cloud, reqRebootInstance))
+                .thenApply(x -> okFormat(OK.value(), null, response))
+                .exceptionally(e -> badFormat(e, response));
+    }
+
+    /**
      * 修改主机名称
      *
      * @param request  http请求
@@ -137,7 +160,7 @@ public class InstanceController extends BaseController {
     }
 
     /**
-     * 修改主机名称
+     * 重置实例密码
      *
      * @param request  http请求
      * @param response http响应

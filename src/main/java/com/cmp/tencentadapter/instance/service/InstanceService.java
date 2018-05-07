@@ -3,6 +3,7 @@ package com.cmp.tencentadapter.instance.service;
 import com.cmp.tencentadapter.common.CloudEntity;
 import com.cmp.tencentadapter.instance.model.req.ReqCloseInstance;
 import com.cmp.tencentadapter.instance.model.req.ReqModifyInstance;
+import com.cmp.tencentadapter.instance.model.req.ReqRebootInstance;
 import com.cmp.tencentadapter.instance.model.req.ReqStartInstance;
 import com.cmp.tencentadapter.instance.model.res.ResInstance;
 import com.cmp.tencentadapter.instance.model.res.ResInstances;
@@ -42,6 +43,14 @@ public interface InstanceService {
      * @param reqStartInstance 请求体
      */
     void startInstance(CloudEntity cloud, ReqStartInstance reqStartInstance);
+
+    /**
+     * 重启实例
+     *
+     * @param cloud             云
+     * @param reqRebootInstance 请求体
+     */
+    void rebootInstance(CloudEntity cloud, ReqRebootInstance reqRebootInstance);
 
     /**
      * 修改实例名称

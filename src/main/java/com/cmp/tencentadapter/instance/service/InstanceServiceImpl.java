@@ -3,6 +3,7 @@ package com.cmp.tencentadapter.instance.service;
 import com.cmp.tencentadapter.common.*;
 import com.cmp.tencentadapter.instance.model.req.ReqCloseInstance;
 import com.cmp.tencentadapter.instance.model.req.ReqModifyInstance;
+import com.cmp.tencentadapter.instance.model.req.ReqRebootInstance;
 import com.cmp.tencentadapter.instance.model.req.ReqStartInstance;
 import com.cmp.tencentadapter.instance.model.res.InstanceInfo;
 import com.cmp.tencentadapter.instance.model.res.QInstance;
@@ -255,6 +256,39 @@ public class InstanceServiceImpl implements InstanceService {
             Map<String, Object> values = new HashMap<>(16);
             values.put("status", "running");
             TencentSimulator.modify(InstanceInfo.class, reqStartInstance.getInstanceId(), values);
+        }
+    }
+
+    /**
+     * 重启实例
+     *
+     * @param cloud             云
+     * @param reqRebootInstance 请求体
+     */
+    @Override
+    public void rebootInstance(CloudEntity cloud, ReqRebootInstance reqRebootInstance) {
+        if (TencentClient.getStatus()) {
+            try {
+                TreeMap<String, Object> config = TencentClient.initConfig(cloud, GET, reqRebootInstance.getRegionId());
+                TreeMap<String, Object> param = new TreeMap<>();
+                param.put("InstanceIds.0", reqRebootInstance.getInstanceId());
+                param.put("ForceReboot", reqRebootInstance.isForceReboot());
+                String result = TencentClient.call(config, new Cvm(), "RebootInstances", param);
+                JSONObject jsonResult = new JSONObject(result);
+                if (jsonResult.getJSONObject("Response").has("Error")) {
+                    String message = jsonResult.getJSONObject("Response")
+                            .getJSONObject("Error")
+                            .getString("Message");
+                    throw new RestException(message, BAD_REQUEST.value());
+                }
+            } catch (Exception e) {
+                logger.error("closeInstance in region: {} occurred error: {}", reqRebootInstance.getRegionId(), e.getMessage());
+                throw (RuntimeException) e;
+            }
+        } else {
+            Map<String, Object> values = new HashMap<>(16);
+            values.put("status", "running");
+            TencentSimulator.modify(InstanceInfo.class, reqRebootInstance.getInstanceId(), values);
         }
     }
 
