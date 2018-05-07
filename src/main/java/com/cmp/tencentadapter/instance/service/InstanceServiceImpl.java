@@ -290,4 +290,34 @@ public class InstanceServiceImpl implements InstanceService {
             TencentSimulator.modify(InstanceInfo.class, reqModifyInstance.getInstanceId(), values);
         }
     }
+
+    /**
+     * 重置实例密码
+     *
+     * @param cloud             云（用户提供ak、sk）
+     * @param reqModifyInstance 请求体
+     */
+    @Override
+    public void resetInstancesPassword(CloudEntity cloud, ReqModifyInstance reqModifyInstance) {
+        if (TencentClient.getStatus()) {
+            try {
+                TreeMap<String, Object> config = TencentClient.initConfig(cloud, GET, reqModifyInstance.getRegionId());
+                TreeMap<String, Object> param = new TreeMap<>();
+                param.put("InstanceIds.0", reqModifyInstance.getInstanceId());
+                param.put("Password", reqModifyInstance.getPassword());
+                param.put("ForceStop", reqModifyInstance.isForceStop());
+                String result = TencentClient.call(config, new Cvm(), "ResetInstancesPassword", param);
+                JSONObject jsonResult = new JSONObject(result);
+                if (jsonResult.getJSONObject("Response").has("Error")) {
+                    String message = jsonResult.getJSONObject("Response")
+                            .getJSONObject("Error")
+                            .getString("Message");
+                    throw new RestException(message, BAD_REQUEST.value());
+                }
+            } catch (Exception e) {
+                logger.error("resetInstancesPassword in region: {} occurred error: {}", reqModifyInstance.getRegionId(), e.getMessage());
+                throw (RuntimeException) e;
+            }
+        }
+    }
 }
