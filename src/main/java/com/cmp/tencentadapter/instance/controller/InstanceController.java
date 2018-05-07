@@ -4,6 +4,7 @@ import com.alibaba.dubbo.common.utils.IOUtils;
 import com.cmp.tencentadapter.common.BaseController;
 import com.cmp.tencentadapter.common.JsonUtil;
 import com.cmp.tencentadapter.instance.model.req.ReqCloseInstance;
+import com.cmp.tencentadapter.instance.model.req.ReqModifyInstance;
 import com.cmp.tencentadapter.instance.model.req.ReqStartInstance;
 import com.cmp.tencentadapter.instance.service.InstanceService;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -109,6 +110,28 @@ public class InstanceController extends BaseController {
         ReqStartInstance reqStartInstance = JsonUtil.stringToObject(body, ReqStartInstance.class);
         return getCloudEntity(request)
                 .thenAccept(cloud -> instanceService.startInstance(cloud, reqStartInstance))
+                .thenApply(x -> okFormat(OK.value(), null, response))
+                .exceptionally(e -> badFormat(e, response));
+    }
+
+    /**
+     * 修改主机名称
+     *
+     * @param request  http请求
+     * @param response http响应
+     * @return 操作结果
+     * @throws IOException 异常
+     */
+    @RequestMapping("/instances/modifyName")
+    @ResponseBody
+    public CompletionStage<JsonNode> modifyInstanceName(
+            final HttpServletRequest request,
+            final HttpServletResponse response) throws IOException {
+        BufferedReader reader = new BufferedReader(new InputStreamReader(request.getInputStream()));
+        String body = IOUtils.read(reader);
+        ReqModifyInstance reqModifyInstance = JsonUtil.stringToObject(body, ReqModifyInstance.class);
+        return getCloudEntity(request)
+                .thenAccept(cloud -> instanceService.modifyInstanceName(cloud, reqModifyInstance))
                 .thenApply(x -> okFormat(OK.value(), null, response))
                 .exceptionally(e -> badFormat(e, response));
     }

@@ -2,6 +2,7 @@ package com.cmp.tencentadapter.instance.service;
 
 import com.cmp.tencentadapter.common.*;
 import com.cmp.tencentadapter.instance.model.req.ReqCloseInstance;
+import com.cmp.tencentadapter.instance.model.req.ReqModifyInstance;
 import com.cmp.tencentadapter.instance.model.req.ReqStartInstance;
 import com.cmp.tencentadapter.instance.model.res.InstanceInfo;
 import com.cmp.tencentadapter.instance.model.res.QInstance;
@@ -254,6 +255,39 @@ public class InstanceServiceImpl implements InstanceService {
             Map<String, Object> values = new HashMap<>(16);
             values.put("status", "running");
             TencentSimulator.modify(InstanceInfo.class, reqStartInstance.getInstanceId(), values);
+        }
+    }
+
+    /**
+     * 修改实例名称
+     *
+     * @param cloud             云（用户提供ak、sk）
+     * @param reqModifyInstance 请求体
+     */
+    @Override
+    public void modifyInstanceName(CloudEntity cloud, ReqModifyInstance reqModifyInstance) {
+        if (TencentClient.getStatus()) {
+            try {
+                TreeMap<String, Object> config = TencentClient.initConfig(cloud, GET, reqModifyInstance.getRegionId());
+                TreeMap<String, Object> param = new TreeMap<>();
+                param.put("InstanceIds.0", reqModifyInstance.getInstanceId());
+                param.put("InstanceName", reqModifyInstance.getInstanceName());
+                String result = TencentClient.call(config, new Cvm(), "ModifyInstancesAttribute", param);
+                JSONObject jsonResult = new JSONObject(result);
+                if (jsonResult.getJSONObject("Response").has("Error")) {
+                    String message = jsonResult.getJSONObject("Response")
+                            .getJSONObject("Error")
+                            .getString("Message");
+                    throw new RestException(message, BAD_REQUEST.value());
+                }
+            } catch (Exception e) {
+                logger.error("modifyInstanceName in region: {} occurred error: {}", reqModifyInstance.getRegionId(), e.getMessage());
+                throw (RuntimeException) e;
+            }
+        } else {
+            Map<String, Object> values = new HashMap<>(16);
+            values.put("instanceName", reqModifyInstance.getInstanceName());
+            TencentSimulator.modify(InstanceInfo.class, reqModifyInstance.getInstanceId(), values);
         }
     }
 }
