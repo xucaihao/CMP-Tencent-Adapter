@@ -1,9 +1,10 @@
 package com.cmp.tencentadapter.image.service;
 
 import com.cmp.tencentadapter.common.*;
-import com.cmp.tencentadapter.image.model.ImageInfo;
-import com.cmp.tencentadapter.image.model.QImage;
-import com.cmp.tencentadapter.image.model.ResImages;
+import com.cmp.tencentadapter.image.model.req.ReqCreImage;
+import com.cmp.tencentadapter.image.model.res.ImageInfo;
+import com.cmp.tencentadapter.image.model.res.QImage;
+import com.cmp.tencentadapter.image.model.res.ResImages;
 import com.cmp.tencentadapter.region.model.res.RegionInfo;
 import com.cmp.tencentadapter.region.model.res.ResRegions;
 import com.cmp.tencentadapter.region.service.RegionService;
@@ -115,4 +116,34 @@ public class ImageServiceImpl implements ImageService {
         }
     }
 
+    /**
+     * 创建镜像
+     *
+     * @param cloud       云
+     * @param reqCreImage 请求体
+     */
+    @Override
+    public void createImage(CloudEntity cloud, ReqCreImage reqCreImage) {
+        if (TencentClient.getStatus()) {
+            try {
+                TreeMap<String, Object> config = TencentClient.initConfig(cloud, GET, reqCreImage.getRegionId());
+                TreeMap<String, Object> param = new TreeMap<>();
+                param.put("InstanceId", reqCreImage.getInstanceId());
+                param.put("ImageName", reqCreImage.getImageName());
+                param.put("ImageDescription", reqCreImage.getDescription());
+                param.put("ForcePoweroff", reqCreImage.isForceStop());
+                String result = TencentClient.call(config, new Image(), "CreateImage", param);
+                JSONObject jsonResult = new JSONObject(result);
+                if (jsonResult.getJSONObject("Response").has("Error")) {
+                    String message = jsonResult.getJSONObject("Response")
+                            .getJSONObject("Error")
+                            .getString("Message");
+                    throw new RestException(message, BAD_REQUEST.value());
+                }
+            } catch (Exception e) {
+                logger.error("createImage in region: {} occurred error: {}", reqCreImage.getRegionId(), e.getMessage());
+                throw (RuntimeException) e;
+            }
+        }
+    }
 }

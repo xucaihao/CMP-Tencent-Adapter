@@ -1,4 +1,4 @@
-package com.cmp.tencentadapter.image.model;
+package com.cmp.tencentadapter.image.model.res;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 

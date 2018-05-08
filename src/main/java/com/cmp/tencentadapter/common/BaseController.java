@@ -10,7 +10,6 @@ import org.springframework.web.client.RestClientResponseException;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
