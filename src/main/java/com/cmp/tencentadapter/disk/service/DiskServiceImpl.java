@@ -132,13 +132,10 @@ public class DiskServiceImpl implements DiskService {
                 TreeMap<String, Object> param = new TreeMap<>();
                 param.put("storageId", reqModifyDisk.getDiskId());
                 param.put("storageName", reqModifyDisk.getDiskName());
-                String result = TencentClient.call(config, new Cvm(), "ModifyCbsStorageAttributes", param);
+                String result = TencentClient.call(config, new Cbs(), "ModifyCbsStorageAttributes", param);
                 JSONObject jsonResult = new JSONObject(result);
-                if (jsonResult.getJSONObject("Response").has("Error")) {
-                    String message = jsonResult.getJSONObject("Response")
-                            .getJSONObject("Error")
-                            .getString("Message");
-                    throw new RestException(message, BAD_REQUEST.value());
+                if (!SUCCESS.equals(jsonResult.getString("codeDesc").toLowerCase())) {
+                    throw new RestException(jsonResult.getString("message"), BAD_REQUEST.value());
                 }
             } catch (Exception e) {
                 logger.error("modifyDiskName in region: {} occurred error: {}", reqModifyDisk.getRegionId(), e.getMessage());

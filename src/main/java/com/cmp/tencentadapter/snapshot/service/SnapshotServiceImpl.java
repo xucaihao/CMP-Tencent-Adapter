@@ -127,11 +127,8 @@ public class SnapshotServiceImpl implements SnapshotService {
                 param.put("snapshotName", reqCreSnapshot.getSnapshotName());
                 String result = TencentClient.call(config, new Snapshot(), "CreateSnapshot", param);
                 JSONObject jsonResult = new JSONObject(result);
-                if (jsonResult.getJSONObject("Response").has("Error")) {
-                    String message = jsonResult.getJSONObject("Response")
-                            .getJSONObject("Error")
-                            .getString("Message");
-                    throw new RestException(message, BAD_REQUEST.value());
+                if (!SUCCESS.equals(jsonResult.getString("codeDesc").toLowerCase())) {
+                    throw new RestException(jsonResult.getString("message"), BAD_REQUEST.value());
                 }
             } catch (Exception e) {
                 logger.error("createSnapshot in region: {} occurred error: {}", reqCreSnapshot.getRegionId(), e.getMessage());
