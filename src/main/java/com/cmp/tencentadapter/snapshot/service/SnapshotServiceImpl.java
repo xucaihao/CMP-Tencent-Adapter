@@ -5,9 +5,10 @@ import com.cmp.tencentadapter.image.service.ImageServiceImpl;
 import com.cmp.tencentadapter.region.model.res.RegionInfo;
 import com.cmp.tencentadapter.region.model.res.ResRegions;
 import com.cmp.tencentadapter.region.service.RegionService;
-import com.cmp.tencentadapter.snapshot.model.QSnapshot;
-import com.cmp.tencentadapter.snapshot.model.ResSnapshots;
-import com.cmp.tencentadapter.snapshot.model.SnapshotInfo;
+import com.cmp.tencentadapter.snapshot.model.req.ReqCreSnapshot;
+import com.cmp.tencentadapter.snapshot.model.res.QSnapshot;
+import com.cmp.tencentadapter.snapshot.model.res.ResSnapshots;
+import com.cmp.tencentadapter.snapshot.model.res.SnapshotInfo;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.qcloud.Module.Snapshot;
 import com.qcloud.Utilities.Json.JSONObject;
@@ -107,6 +108,35 @@ public class SnapshotServiceImpl implements SnapshotService {
         } else {
             List<SnapshotInfo> snapshots = TencentSimulator.getAll(SnapshotInfo.class);
             return new ResSnapshots(snapshots);
+        }
+    }
+
+    /**
+     * 创建快照
+     *
+     * @param cloud          云
+     * @param reqCreSnapshot 请求体
+     */
+    @Override
+    public void createSnapshot(CloudEntity cloud, ReqCreSnapshot reqCreSnapshot) {
+        if (TencentClient.getStatus()) {
+            try {
+                TreeMap<String, Object> config = TencentClient.initConfig(cloud, GET, reqCreSnapshot.getRegionId());
+                TreeMap<String, Object> param = new TreeMap<>();
+                param.put("storageId", reqCreSnapshot.getDiskId());
+                param.put("snapshotName", reqCreSnapshot.getSnapshotName());
+                String result = TencentClient.call(config, new Snapshot(), "CreateSnapshot", param);
+                JSONObject jsonResult = new JSONObject(result);
+                if (jsonResult.getJSONObject("Response").has("Error")) {
+                    String message = jsonResult.getJSONObject("Response")
+                            .getJSONObject("Error")
+                            .getString("Message");
+                    throw new RestException(message, BAD_REQUEST.value());
+                }
+            } catch (Exception e) {
+                logger.error("createSnapshot in region: {} occurred error: {}", reqCreSnapshot.getRegionId(), e.getMessage());
+                throw (RuntimeException) e;
+            }
         }
     }
 }

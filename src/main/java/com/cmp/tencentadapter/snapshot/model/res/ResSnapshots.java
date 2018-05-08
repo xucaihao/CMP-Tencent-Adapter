@@ -1,4 +1,4 @@
-package com.cmp.tencentadapter.snapshot.model;
+package com.cmp.tencentadapter.snapshot.model.res;
 
 import java.util.List;
 
