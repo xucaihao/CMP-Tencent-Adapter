@@ -1,6 +1,7 @@
 package com.cmp.tencentadapter.disk.service;
 
 import com.cmp.tencentadapter.common.*;
+import com.cmp.tencentadapter.disk.model.req.ReqModifyDisk;
 import com.cmp.tencentadapter.disk.model.res.DiskInfo;
 import com.cmp.tencentadapter.disk.model.res.QDisk;
 import com.cmp.tencentadapter.disk.model.res.ResDisks;
@@ -117,4 +118,32 @@ public class DiskServiceImpl implements DiskService {
         }
     }
 
+    /**
+     * 修改硬盘名称
+     *
+     * @param cloud         云（用户提供ak、sk）
+     * @param reqModifyDisk 请求体
+     */
+    @Override
+    public void modifyDiskName(CloudEntity cloud, ReqModifyDisk reqModifyDisk) {
+        if (TencentClient.getStatus()) {
+            try {
+                TreeMap<String, Object> config = TencentClient.initConfig(cloud, GET, reqModifyDisk.getRegionId());
+                TreeMap<String, Object> param = new TreeMap<>();
+                param.put("storageId", reqModifyDisk.getDiskId());
+                param.put("storageName", reqModifyDisk.getDiskName());
+                String result = TencentClient.call(config, new Cvm(), "ModifyCbsStorageAttributes", param);
+                JSONObject jsonResult = new JSONObject(result);
+                if (jsonResult.getJSONObject("Response").has("Error")) {
+                    String message = jsonResult.getJSONObject("Response")
+                            .getJSONObject("Error")
+                            .getString("Message");
+                    throw new RestException(message, BAD_REQUEST.value());
+                }
+            } catch (Exception e) {
+                logger.error("modifyDiskName in region: {} occurred error: {}", reqModifyDisk.getRegionId(), e.getMessage());
+                throw (RuntimeException) e;
+            }
+        }
+    }
 }
