@@ -196,7 +196,7 @@ public class SnapshotServiceImpl implements SnapshotService {
                     throw new RestException(jsonResult.getString("message"), BAD_REQUEST.value());
                 }
             } catch (Exception e) {
-                logger.error("createSnapshot in region: {} occurred error: {}", regionId, e.getMessage());
+                logger.error("deleteImage in region: {} occurred error: {}", regionId, e.getMessage());
                 throw (RuntimeException) e;
             }
         }

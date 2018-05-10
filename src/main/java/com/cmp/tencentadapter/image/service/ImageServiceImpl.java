@@ -4,12 +4,14 @@ import com.cmp.tencentadapter.common.*;
 import com.cmp.tencentadapter.image.model.req.ReqCreImage;
 import com.cmp.tencentadapter.image.model.res.ImageInfo;
 import com.cmp.tencentadapter.image.model.res.QImage;
+import com.cmp.tencentadapter.image.model.res.ResImage;
 import com.cmp.tencentadapter.image.model.res.ResImages;
 import com.cmp.tencentadapter.region.model.res.RegionInfo;
 import com.cmp.tencentadapter.region.model.res.ResRegions;
 import com.cmp.tencentadapter.region.service.RegionService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.qcloud.Module.Image;
+import com.qcloud.Module.Snapshot;
 import com.qcloud.Utilities.Json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,6 +27,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import static com.cmp.tencentadapter.common.Constance.GET;
+import static com.cmp.tencentadapter.common.Constance.SUCCESS;
 import static java.util.stream.Collectors.toList;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 
@@ -117,6 +120,48 @@ public class ImageServiceImpl implements ImageService {
     }
 
     /**
+     * 查询指定镜像
+     *
+     * @param cloud    云（用户提供ak、sk）
+     * @param regionId 区域id
+     * @param imageId  镜像id
+     * @return 指定镜像信息
+     */
+    @Override
+    public ResImage describeImageAttribute(CloudEntity cloud, String regionId, String imageId) {
+        if (TencentClient.getStatus()) {
+            try {
+                TreeMap<String, Object> config = TencentClient.initConfig(cloud, GET, regionId);
+                TreeMap<String, Object> param = new TreeMap<>();
+                param.put("ImageIds.0", imageId);
+                String result = TencentClient.call(config, new Image(), "DescribeImages", param);
+                JSONObject jsonResult = new JSONObject(result);
+                if (jsonResult.getJSONObject("Response").has("Error")) {
+                    String message = jsonResult.getJSONObject("Response")
+                            .getJSONObject("Error")
+                            .getString("Message");
+                    throw new RestException(message, BAD_REQUEST.value());
+                } else {
+                    String imageSet = jsonResult.getJSONObject("Response")
+                            .getJSONArray("ImageSet")
+                            .get(0)
+                            .toString();
+                    ImageInfo imageInfo = Optional.ofNullable(JsonUtil.stringToObject(imageSet, QImage.class))
+                            .map(image -> convertImage(image, regionId))
+                            .orElseThrow(() -> new RestException("", BAD_REQUEST.value()));
+                    return new ResImage(imageInfo);
+                }
+            } catch (Exception e) {
+                logger.error("describeImageAttribute in region: {} occurred error: {}", regionId, e.getMessage());
+                throw (RuntimeException) e;
+            }
+        } else {
+            ImageInfo image = TencentSimulator.get(ImageInfo.class, imageId);
+            return new ResImage(image);
+        }
+    }
+
+    /**
      * 创建镜像
      *
      * @param cloud       云
@@ -142,6 +187,35 @@ public class ImageServiceImpl implements ImageService {
                 }
             } catch (Exception e) {
                 logger.error("createImage in region: {} occurred error: {}", reqCreImage.getRegionId(), e.getMessage());
+                throw (RuntimeException) e;
+            }
+        }
+    }
+
+    /**
+     * 删除镜像
+     *
+     * @param cloud    云（用户提供ak、sk）
+     * @param regionId 区域id
+     * @param imageId  镜像id
+     */
+    @Override
+    public void deleteImage(CloudEntity cloud, String regionId, String imageId) {
+        if (TencentClient.getStatus()) {
+            try {
+                TreeMap<String, Object> config = TencentClient.initConfig(cloud, GET, regionId);
+                TreeMap<String, Object> param = new TreeMap<>();
+                param.put("ImageIds.0", imageId);
+                String result = TencentClient.call(config, new Image(), "DeleteImages", param);
+                JSONObject jsonResult = new JSONObject(result);
+                if (jsonResult.getJSONObject("Response").has("Error")) {
+                    String message = jsonResult.getJSONObject("Response")
+                            .getJSONObject("Error")
+                            .getString("Message");
+                    throw new RestException(message, BAD_REQUEST.value());
+                }
+            } catch (Exception e) {
+                logger.error("deleteImage in region: {} occurred error: {}", regionId, e.getMessage());
                 throw (RuntimeException) e;
             }
         }

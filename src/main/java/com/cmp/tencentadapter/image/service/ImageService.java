@@ -2,6 +2,7 @@ package com.cmp.tencentadapter.image.service;
 
 import com.cmp.tencentadapter.common.CloudEntity;
 import com.cmp.tencentadapter.image.model.req.ReqCreImage;
+import com.cmp.tencentadapter.image.model.res.ResImage;
 import com.cmp.tencentadapter.image.model.res.ResImages;
 
 public interface ImageService {
@@ -15,10 +16,29 @@ public interface ImageService {
     ResImages describeImages(CloudEntity cloud);
 
     /**
+     * 查询指定镜像
+     *
+     * @param cloud    云（用户提供ak、sk）
+     * @param regionId 区域id
+     * @param imageId  镜像id
+     * @return 指定镜像信息
+     */
+    ResImage describeImageAttribute(CloudEntity cloud, String regionId, String imageId);
+
+    /**
      * 创建镜像
      *
      * @param cloud       云
      * @param reqCreImage 请求体
      */
     void createImage(CloudEntity cloud, ReqCreImage reqCreImage);
+
+    /**
+     * 删除镜像
+     *
+     * @param cloud    云（用户提供ak、sk）
+     * @param regionId 区域id
+     * @param imageId  镜像id
+     */
+    void deleteImage(CloudEntity cloud, String regionId, String imageId);
 }
