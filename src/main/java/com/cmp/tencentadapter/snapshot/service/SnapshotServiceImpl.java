@@ -7,6 +7,7 @@ import com.cmp.tencentadapter.region.model.res.ResRegions;
 import com.cmp.tencentadapter.region.service.RegionService;
 import com.cmp.tencentadapter.snapshot.model.req.ReqCreSnapshot;
 import com.cmp.tencentadapter.snapshot.model.res.QSnapshot;
+import com.cmp.tencentadapter.snapshot.model.res.ResSnapshot;
 import com.cmp.tencentadapter.snapshot.model.res.ResSnapshots;
 import com.cmp.tencentadapter.snapshot.model.res.SnapshotInfo;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -112,6 +113,44 @@ public class SnapshotServiceImpl implements SnapshotService {
     }
 
     /**
+     * 查询指定快照
+     *
+     * @param cloud      云（用户提供ak、sk）
+     * @param regionId   区域id
+     * @param snapshotId 快照id
+     * @return 指定快照信息
+     */
+    @Override
+    public ResSnapshot describeSnapshotAttribute(CloudEntity cloud, String regionId, String snapshotId) {
+        if (TencentClient.getStatus()) {
+            try {
+                TreeMap<String, Object> config = TencentClient.initConfig(cloud, GET, regionId);
+                TreeMap<String, Object> param = new TreeMap<>();
+                param.put("snapshotIds.0", snapshotId);
+                String result = TencentClient.call(config, new Snapshot(), "DescribeSnapshots", param);
+                JSONObject jsonResult = new JSONObject(result);
+                if (!SUCCESS.equals(jsonResult.getString("codeDesc").toLowerCase())) {
+                    throw new RestException(jsonResult.getString("message"), BAD_REQUEST.value());
+                } else {
+                    String snapshotSet = jsonResult.getJSONArray("snapshotSet")
+                            .get(0)
+                            .toString();
+                    SnapshotInfo snapshotInfo = Optional.ofNullable(JsonUtil.stringToObject(snapshotSet, QSnapshot.class))
+                            .map(snapshot -> convertSnapshot(snapshot, regionId))
+                            .orElseThrow(() -> new RestException("", BAD_REQUEST.value()));
+                    return new ResSnapshot(snapshotInfo);
+                }
+            } catch (Exception e) {
+                logger.error("describeSnapshotAttribute in region: {} occurred error: {}", regionId, e.getMessage());
+                throw (RuntimeException) e;
+            }
+        } else {
+            SnapshotInfo snapshot = TencentSimulator.get(SnapshotInfo.class, snapshotId);
+            return new ResSnapshot(snapshot);
+        }
+    }
+
+    /**
      * 创建快照
      *
      * @param cloud          云
@@ -132,6 +171,32 @@ public class SnapshotServiceImpl implements SnapshotService {
                 }
             } catch (Exception e) {
                 logger.error("createSnapshot in region: {} occurred error: {}", reqCreSnapshot.getRegionId(), e.getMessage());
+                throw (RuntimeException) e;
+            }
+        }
+    }
+
+    /**
+     * 删除快照
+     *
+     * @param cloud      云
+     * @param regionId   区域id
+     * @param snapshotId 快照id
+     */
+    @Override
+    public void deleteSnapshot(CloudEntity cloud, String regionId, String snapshotId) {
+        if (TencentClient.getStatus()) {
+            try {
+                TreeMap<String, Object> config = TencentClient.initConfig(cloud, GET, regionId);
+                TreeMap<String, Object> param = new TreeMap<>();
+                param.put("snapshotIds.0", snapshotId);
+                String result = TencentClient.call(config, new Snapshot(), "DeleteSnapshot", param);
+                JSONObject jsonResult = new JSONObject(result);
+                if (!SUCCESS.equals(jsonResult.getString("codeDesc").toLowerCase())) {
+                    throw new RestException(jsonResult.getString("message"), BAD_REQUEST.value());
+                }
+            } catch (Exception e) {
+                logger.error("createSnapshot in region: {} occurred error: {}", regionId, e.getMessage());
                 throw (RuntimeException) e;
             }
         }

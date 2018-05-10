@@ -187,7 +187,6 @@ public class InstanceServiceImpl implements InstanceService {
                 logger.error("describeInstanceAttribute {} in region: {} occurred error: {}", instanceId, regionId, e.getMessage());
                 throw (RuntimeException) e;
             }
-
         } else {
             InstanceInfo instance = TencentSimulator.get(InstanceInfo.class, instanceId);
             return new ResInstance(instance);
